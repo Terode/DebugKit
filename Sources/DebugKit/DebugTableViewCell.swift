@@ -4,30 +4,35 @@ import UIKit
 public final class DebugTableViewCell: UITableViewCell {
     public static let reuseID = "DebugTableViewCell"
 
-    private let titleLabel      = UILabel()
-    private let segmentControl  = UISegmentedControl()
-    private let toggleSwitch    = UISwitch()
-    private let textFieldView   = UITextField()
-    private let selectButton    = UIButton(type: .system)
+    private let titleLabel = UILabel()
+    private let segmentControl = UISegmentedControl()
+    private let toggleSwitch = UISwitch()
+    private let textFieldView = UITextField()
+    private let selectButton = UIButton(type: .system)
 
     public var onSegmentChanged: ((Int) -> Void)?
-    public var onSwitchChanged:  ((Bool) -> Void)?
-    public var onTextChanged:    ((String) -> Void)?
-    public var onButtonTapped:   (() -> Void)?
+    public var onSwitchChanged: ((Bool) -> Void)?
+    public var onTextChanged: ((String) -> Void)?
+    public var onButtonTapped: (() -> Void)?
 
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
+        
         setupViews()
     }
 
     required init?(coder: NSCoder) {
         super.init(coder: coder)
+        
         setupViews()
     }
 
     private func setupViews() {
         selectionStyle = .none
 
+        textFieldView.frame.size.width = 200
+        textFieldView.borderStyle = .roundedRect
+        textFieldView.textAlignment = .center
         textFieldView.keyboardType = .decimalPad
         textFieldView.delegate = self
 
@@ -73,13 +78,14 @@ public final class DebugTableViewCell: UITableViewCell {
         showButton: Bool = false,
         buttonTitle: String = ""
     ) {
+        titleLabel.isHidden = false
         titleLabel.text = title
 
         segmentControl.isHidden = !showSegment
         if showSegment {
             segmentControl.removeAllSegments()
-            for (index, option) in segmentOptions.enumerated() {
-                segmentControl.insertSegment(withTitle: option, at: index, animated: false)
+            for (index, title) in segmentOptions.enumerated() {
+                segmentControl.insertSegment(withTitle: title, at: index, animated: false)
             }
             segmentControl.selectedSegmentIndex = selectedSegmentIndex
         }
@@ -103,15 +109,15 @@ public final class DebugTableViewCell: UITableViewCell {
     @objc private func segChanged() {
         onSegmentChanged?(segmentControl.selectedSegmentIndex)
     }
-
+    
     @objc private func swChanged() {
         onSwitchChanged?(toggleSwitch.isOn)
     }
-
+    
     @objc private func tfChanged() {
         onTextChanged?(textFieldView.text ?? "")
     }
-
+    
     @objc private func btnTapped() {
         onButtonTapped?()
     }
@@ -120,10 +126,9 @@ public final class DebugTableViewCell: UITableViewCell {
 extension DebugTableViewCell: UITextFieldDelegate {
     public func textField(_ textField: UITextField, shouldChangeCharactersIn range: NSRange, replacementString string: String) -> Bool {
         if string == "," {
-            let current = textField.text ?? ""
-            if let textRange = Range(range, in: current) {
-                let newText = current.replacingCharacters(in: textRange, with: ".")
-                textField.text = newText
+            let text = textField.text ?? ""
+            if let range = Range(range, in: text) {
+                textField.text = text.replacingCharacters(in: range, with: ".")
             }
             return false
         }

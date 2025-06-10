@@ -10,7 +10,6 @@ public enum TimeField: String, CaseIterable {
     case timeForcePositiveWait
     case timeDay
 
-    @MainActor
     public var currentValue: TimeInterval {
         get {
             switch self {
@@ -52,39 +51,59 @@ public enum TimeField: String, CaseIterable {
 }
 
 public enum DebugItem {
-    case server
-    case telegraph
-    case nodes
-    case popup
+    case server, telegraph, nodes, popup
     case timing(TimeField)
-    case interstitialPerDay
-    case interstitialInterval
-    case adsInspectorTestMode
-    case testAdsMode
+    case interstitialPerDay, interstitialInterval
+    case adsInspectorTestMode, testAdsMode
     case app
 
     public var title: String {
         switch self {
-        case .server:
+        case .server:               
             return "Server"
-        case .telegraph:
+        case .telegraph:            
             return "Telegraph"
-        case .nodes:
+        case .nodes:                
             return "Load servers from nodes"
-        case .popup:
+        case .popup:                
             return "Show popup"
         case .timing(let field):
             return field.rawValue
-        case .interstitialPerDay:
+        case .interstitialPerDay:   
             return "Interstitial per day"
-        case .interstitialInterval:
+        case .interstitialInterval: 
             return "Interstitial interval"
-        case .adsInspectorTestMode:
+        case .adsInspectorTestMode: 
             return "Ads inspector"
-        case .testAdsMode:
+        case .testAdsMode:          
             return "Test ads mode"
-        case .app:
+        case .app:                  
             return "Version"
+        }
+    }
+
+    public var identifier: String {
+        switch self {
+        case .server:               
+            return "server"
+        case .telegraph:            
+            return "telegraph"
+        case .nodes:                
+            return "nodes"
+        case .popup:                
+            return "popup"
+        case .timing(let field):
+            return field.rawValue
+        case .interstitialPerDay:   
+            return "interstitialPerDay"
+        case .interstitialInterval: 
+            return "interstitialInterval"
+        case .adsInspectorTestMode: 
+            return "adsInspectorTestMode"
+        case .testAdsMode:          
+            return "testAdsMode"
+        case .app:                  
+            return "app"
         }
     }
 }
@@ -97,21 +116,11 @@ public enum DebugControl {
 }
 
 public enum AdsInspectorTestMode: String, CaseIterable {
-    case noTest
-    case yandex
-    case adMob
+    case noTest, yandex, adMob
 }
 
 public enum TestAdsMode: String, CaseIterable {
-    case noTest
-    case adMob
-    case yandex
-    case yandexBigo
-    case yandexMintegral
-    case yandexUnity
-    case yandexLiftoff
-    case yandexIronSource
-    case yandexCharboost
+    case noTest, adMob, yandex, yandexBigo, yandexMintegral, yandexUnity, yandexLiftoff, yandexIronSource, yandexCharboost
 
     public var isYandex: Bool {
         switch self {
@@ -125,145 +134,135 @@ public enum TestAdsMode: String, CaseIterable {
 
 @MainActor
 public struct DebugViewModel {
-    private let itemsBySection: [[DebugItem]] = [
-        [.server, .telegraph, .nodes],
-        [.popup],
-        TimeField.allCases.map { DebugItem.timing($0) },
-        [.interstitialPerDay, .interstitialInterval, .adsInspectorTestMode, .testAdsMode],
-        [.app]
+    private struct Section {
+        let title: String
+        var settings: [DebugItem]
+    }
+
+    private let allSections: [Section] = [
+        Section(title: "General", settings: [.server, .telegraph, .nodes]),
+        Section(title: "Popups", settings: [.popup]),
+        Section(title: "Timings", settings: TimeField.allCases.map(DebugItem.timing)),
+        Section(title: "Ads", settings: [.interstitialPerDay, .interstitialInterval, .adsInspectorTestMode, .testAdsMode]),
+        Section(title: "App", settings: [.app])
     ]
 
-    public init() { }
+    private var visibleSections: [Section] = []
 
-    public var numberOfSections: Int {
-        itemsBySection.count
-    }
-
-    public func numberOfRows(in section: Int) -> Int {
-        itemsBySection[section].count
-    }
-
-    public func titleForSection(_ section: Int) -> String {
-        switch section {
-        case 0: return "General"
-        case 1: return "Popups"
-        case 2: return "Timings"
-        case 3: return "Ads"
-        case 4: return "App"
-        default: return ""
+    public init() {
+        let info = Bundle.main.infoDictionary
+        let allowedSections = info?["DebugKitVisibleSections"] as? [String]
+        var allowedItemsBySection = [String:[String]]()
+        if let items = info?["DebugKitVisibleItems"] as? [String:Any] {
+            for (section, items) in items {
+                if let items = items as? [String] {
+                    allowedItemsBySection[section] = items
+                }
+            }
+        }
+        visibleSections = allSections.compactMap { section in
+            if let allowed = allowedSections, !allowed.contains(section.title) {
+                return nil
+            }
+            
+            let filtered = section.settings.filter {
+                guard let a = allowedItemsBySection[section.title] else { return true }
+                return a.contains($0.identifier)
+            }
+            
+            guard !filtered.isEmpty else {
+                return nil
+            }
+            
+            return Section(title: section.title, settings: filtered)
         }
     }
 
+    public var numberOfSections: Int {
+        visibleSections.count
+    }
+    
+    public func numberOfRows(in section: Int) -> Int {
+        visibleSections[section].settings.count
+    }
+    
+    public func titleForSection(_ section: Int) -> String {
+        visibleSections[section].title
+    }
+    
     public func settingItem(at indexPath: IndexPath) -> DebugItem {
-        itemsBySection[indexPath.section][indexPath.row]
+        visibleSections[indexPath.section].settings[indexPath.row]
     }
 
     public func configure(_ cell: DebugTableViewCell, at indexPath: IndexPath) {
         let item = settingItem(at: indexPath)
-
         switch item {
         case .server:
             let value = Preferences.isUsePreProdServerApi
-            cell.configure(
-                title: item.title,
-                showSegment: true,
-                segmentOptions: ["preprod", "prod"],
-                selectedSegmentIndex: value ? 0 : 1
-            )
-            cell.onSegmentChanged = { newIndex in
-                Preferences.isUsePreProdServerApi = (newIndex == 0)
+            cell.configure(title: item.title, showSegment: true,
+                           segmentOptions: ["preprod","prod"], selectedSegmentIndex: value ? 0 : 1)
+            cell.onSegmentChanged = {
+                Preferences.isUsePreProdServerApi = ($0 == 0)
             }
 
         case .telegraph:
             let value = Preferences.isUseTelegraph
-            cell.configure(
-                title: item.title,
-                showSwitch: true,
-                isSwitchOn: value
-            )
-            cell.onSwitchChanged = { newValue in
-                Preferences.isUseTelegraph = newValue
+            cell.configure(title: item.title, showSwitch: true, isSwitchOn: value)
+            cell.onSwitchChanged = {
+                Preferences.isUseTelegraph = $0
             }
 
         case .nodes:
             let value = Preferences.loadServersFromNodes
-            cell.configure(
-                title: item.title,
-                showSwitch: true,
-                isSwitchOn: value
-            )
-            cell.onSwitchChanged = { newValue in
-                Preferences.loadServersFromNodes = newValue
+            cell.configure(title: item.title, showSwitch: true, isSwitchOn: value)
+            cell.onSwitchChanged = {
+                Preferences.loadServersFromNodes = $0
             }
 
         case .popup:
             let value = Preferences.testShowPopup
-            cell.configure(
-                title: item.title,
-                showSwitch: true,
-                isSwitchOn: value
-            )
-            cell.onSwitchChanged = { newValue in
-                Preferences.testShowPopup = newValue
+            cell.configure(title: item.title, showSwitch: true, isSwitchOn: value)
+            cell.onSwitchChanged = {
+                Preferences.testShowPopup = $0
             }
 
-        case .timing(var field):
-            let value = field.currentValue
-            cell.configure(
-                title: item.title,
-                showTextField: true,
-                text: String(Int(value))
-            )
-            cell.onTextChanged = { newText in
-                if let interval = TimeInterval(newText) {
-                    field.currentValue = interval
+        case .timing(var time):
+            let value = time.currentValue
+            cell.configure(title: item.title, showTextField: true, text: String(Int(value)))
+            cell.onTextChanged = {
+                if let interval = TimeInterval($0) {
+                    time.currentValue = interval
                 }
             }
 
         case .interstitialPerDay:
             let value = Preferences.interstitialPerDay
-            cell.configure(
-                title: item.title,
-                showTextField: true,
-                text: String(value)
-            )
-            cell.onTextChanged = { newText in
-                if let intValue = Int(newText) {
-                    Preferences.interstitialPerDay = intValue
+            cell.configure(title: item.title, showTextField: true, text: String(value))
+            cell.onTextChanged = {
+                if let int = Int($0) {
+                    Preferences.interstitialPerDay = int
                 }
             }
 
         case .interstitialInterval:
             let value = Preferences.interstitialInterval
-            cell.configure(
-                title: item.title,
-                showTextField: true,
-                text: String(Int(value))
-            )
-            cell.onTextChanged = { newText in
-                if let dblValue = TimeInterval(newText) {
-                    Preferences.interstitialInterval = dblValue
+            cell.configure(title: item.title, showTextField: true, text: String(Int(value)))
+            cell.onTextChanged = {
+                if let interval = TimeInterval($0) {
+                    Preferences.interstitialInterval = interval
                 }
             }
 
         case .adsInspectorTestMode:
-            let raw = Preferences.adsInspectorTestModeRawValue ?? AdsInspectorTestMode.noTest.rawValue
-            let current = AdsInspectorTestMode(rawValue: raw) ?? .noTest
-            let options = AdsInspectorTestMode.allCases.map { $0.rawValue }
-            let selected = options.firstIndex(of: current.rawValue) ?? 0
-
-            cell.configure(
-                title: item.title,
-                showSegment: true,
-                segmentOptions: options,
-                selectedSegmentIndex: selected
-            )
-            cell.onSegmentChanged = { newIndex in
-                let chosen = AdsInspectorTestMode.allCases[newIndex]
-                Preferences.adsInspectorTestModeRawValue = chosen.rawValue
-
-                // синхронизируем testAdsMode
-                switch chosen {
+            let rawValue = Preferences.adsInspectorTestModeRawValue ?? AdsInspectorTestMode.noTest.rawValue
+            let currentValue = AdsInspectorTestMode(rawValue: rawValue) ?? .noTest
+            let options = AdsInspectorTestMode.allCases.map(\.rawValue)
+            let selectValue = options.firstIndex(of: currentValue.rawValue) ?? 0
+            cell.configure(title: item.title, showSegment: true, segmentOptions: options, selectedSegmentIndex: selectValue)
+            cell.onSegmentChanged = { index in
+                let chosenIndex = AdsInspectorTestMode.allCases[index]
+                Preferences.adsInspectorTestModeRawValue = chosenIndex.rawValue
+                switch chosenIndex {
                 case .noTest:
                     Preferences.testAdsModeRawValue = TestAdsMode.noTest.rawValue
                 case .yandex:
@@ -274,37 +273,26 @@ public struct DebugViewModel {
             }
 
         case .testAdsMode:
-            let raw = Preferences.testAdsModeRawValue ?? TestAdsMode.noTest.rawValue
-            let current = TestAdsMode(rawValue: raw) ?? .noTest
-            let buttonTitle = current.rawValue
-
-            cell.configure(
-                title: item.title,
-                showButton: true,
-                buttonTitle: buttonTitle
-            )
-            cell.onButtonTapped = { }
-            // Обработчик показа ActionSheet’а расположен в DebugViewController
+            let rawValue = Preferences.testAdsModeRawValue ?? TestAdsMode.noTest.rawValue
+            let currentValue = TestAdsMode(rawValue: rawValue) ?? .noTest
+            cell.configure(title: item.title, showButton: true, buttonTitle: currentValue.rawValue)
+            cell.onButtonTapped = {
+                
+            }
 
         case .app:
             let value = Preferences.overrideAppVersion
-                ?? Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String
-                ?? "0"
-            cell.configure(
-                title: item.title,
-                showTextField: true,
-                text: value
-            )
-            cell.onTextChanged = { newText in
-                Preferences.overrideAppVersion = newText
+                ?? Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0"
+            cell.configure(title: item.title, showTextField: true, text: value)
+            cell.onTextChanged = {
+                Preferences.overrideAppVersion = $0
             }
         }
     }
 
     public func updateTestAdsMode(at indexPath: IndexPath, to newMode: TestAdsMode) {
         Preferences.testAdsModeRawValue = newMode.rawValue
-
-        let inspectorMode: AdsInspectorTestMode = {
+        let mode: AdsInspectorTestMode = {
             switch newMode {
             case .noTest:
                 return .noTest
@@ -314,7 +302,7 @@ public struct DebugViewModel {
                 return .yandex
             }
         }()
-
-        Preferences.adsInspectorTestModeRawValue = inspectorMode.rawValue
+        
+        Preferences.adsInspectorTestModeRawValue = mode.rawValue
     }
 }
