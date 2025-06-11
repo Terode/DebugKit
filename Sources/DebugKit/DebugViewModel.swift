@@ -150,24 +150,25 @@ public struct DebugViewModel {
     private var visibleSections: [Section] = []
 
     public init() {
-        let info = Bundle.main.infoDictionary
-        let allowedSections = info?["DebugKitVisibleSections"] as? [String]
-        var allowedItemsBySection = [String:[String]]()
-        if let items = info?["DebugKitVisibleItems"] as? [String:Any] {
-            for (section, items) in items {
-                if let items = items as? [String] {
-                    allowedItemsBySection[section] = items
-                }
-            }
+        let bundle = Bundle.module
+        guard
+            let url = bundle.url(forResource: "DebugKitConfig", withExtension: "plist"),
+            let info = NSDictionary(contentsOf: url) as? [String:Any]
+        else {
+            visibleSections = allSections
+            return
         }
+
+        let sectionDict = info["DebugKitVisibleSections"] as? [String:Bool] ?? [:]
+        let itemsDict = info["DebugKitVisibleItems"] as? [String:[String:Bool]] ?? [:]
+
         visibleSections = allSections.compactMap { section in
-            if let allowed = allowedSections, !allowed.contains(section.title) {
+            if sectionDict[section.title] == false {
                 return nil
             }
             
-            let filtered = section.settings.filter {
-                guard let a = allowedItemsBySection[section.title] else { return true }
-                return a.contains($0.identifier)
+            let filtered = section.settings.filter { item in
+                itemsDict[section.title]?[item.identifier] ?? true
             }
             
             guard !filtered.isEmpty else {

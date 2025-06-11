@@ -1,3 +1,4 @@
+
 // swift-tools-version:6.1
 
 import PackageDescription
@@ -13,14 +14,15 @@ let package = Package(
             targets: ["DebugKit"]
         ),
     ],
-    dependencies: [
-        
-    ],
+    dependencies: [],
     targets: [
         .target(
             name: "DebugKit",
             dependencies: [],
-            path: "Sources/DebugKit"
+            path: "Sources/DebugKit",
+            resources: [
+                .process("Resources/DebugKitConfig.plist")
+            ]
         )
     ]
 )
