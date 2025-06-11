@@ -150,7 +150,7 @@ public struct DebugViewModel {
     private var visibleSections: [Section] = []
 
     public init() {
-        let bundle = Bundle.module
+        let bundle = Bundle(for: DebugViewController.self)
         guard
             let url = bundle.url(forResource: "InfoDebugKit", withExtension: "plist"),
             let info = NSDictionary(contentsOf: url) as? [String:Any]
@@ -159,8 +159,8 @@ public struct DebugViewModel {
             return
         }
 
-        let sectionDict = info["DebugKitVisibleSections"] as? [String:Bool] ?? [:]
-        let itemsDict = info["DebugKitVisibleItems"] as? [String:[String:Bool]] ?? [:]
+        let sectionDict = info["DebugKitVisibleSections"] as? [String: Bool] ?? [:]
+        let itemsDict = info["DebugKitVisibleItems"] as? [String: [String: Bool]] ?? [:]
 
         visibleSections = allSections.compactMap { section in
             if sectionDict[section.title] == false {
