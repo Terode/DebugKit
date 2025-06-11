@@ -20,9 +20,6 @@ let package = Package(
             name: "DebugKit",
             dependencies: [],
             path: "Sources/DebugKit",
-            resources: [
-                .process("Resources/DebugKitConfig.plist")
-            ]
         )
     ]
 )
