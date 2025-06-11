@@ -152,7 +152,7 @@ public struct DebugViewModel {
     public init() {
         let bundle = Bundle.module
         guard
-            let url = bundle.url(forResource: "DebugKitConfig", withExtension: "plist"),
+            let url = bundle.url(forResource: "InfoDebugKit", withExtension: "plist"),
             let info = NSDictionary(contentsOf: url) as? [String:Any]
         else {
             visibleSections = allSections
