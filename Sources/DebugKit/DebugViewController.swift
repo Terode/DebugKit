@@ -16,6 +16,18 @@ public final class DebugViewController: UIViewController {
     public override func viewDidLoad() {
         super.viewDidLoad()
         
+        let appearance = UINavigationBarAppearance()
+        appearance.configureWithOpaqueBackground()
+        appearance.backgroundColor = .white
+        appearance.titleTextAttributes = [.foregroundColor: UIColor.label]
+        
+        navigationController?.navigationBar.standardAppearance = appearance
+        navigationController?.navigationBar.scrollEdgeAppearance = appearance
+        navigationController?.navigationBar.compactAppearance = appearance
+        
+        navigationController?.navigationBar.isTranslucent = false
+        navigationController?.navigationBar.barTintColor = .white
+        
         title = "Debug"
         view.backgroundColor = .systemBackground
 
