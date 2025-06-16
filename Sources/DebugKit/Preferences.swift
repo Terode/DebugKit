@@ -11,12 +11,7 @@ public struct Preferences {
     }
 
     public static var isUseTelegraph: Bool {
-        get {
-            if UserDefaults.standard.object(forKey: #function) == nil {
-                return true
-            }
-            return UserDefaults.standard.bool(forKey: #function)
-        }
+        get { UserDefaults.standard.bool(forKey: #function) }
         set { UserDefaults.standard.set(newValue, forKey: #function) }
     }
 

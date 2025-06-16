@@ -4,6 +4,7 @@ import UIKit
 public final class DebugViewController: UIViewController {
     private let viewModel = DebugViewModel()
     private let tableView = UITableView(frame: .zero, style: .insetGrouped)
+    private let applyButton = UIButton(type: .system)
 
     public init() {
         super.init(nibName: nil, bundle: nil)
@@ -19,28 +20,38 @@ public final class DebugViewController: UIViewController {
         title = "Debug"
         view.backgroundColor = .systemBackground
 
-        navigationItem.rightBarButtonItem = UIBarButtonItem(
-            title: "Apply",
-            style: .done,
-            target: self,
-            action: #selector(applyTapped)
-        )
-
         tableView.translatesAutoresizingMaskIntoConstraints = false
         tableView.dataSource = self
-        tableView.delegate = self
+        tableView.delegate   = self
         tableView.register(
             DebugTableViewCell.self,
             forCellReuseIdentifier: DebugTableViewCell.reuseID
         )
-        
         view.addSubview(tableView)
-        
+
+        applyButton.translatesAutoresizingMaskIntoConstraints = false
+        applyButton.setTitle("Apply", for: .normal)
+        applyButton.setTitleColor(.white, for: .normal)
+        applyButton.backgroundColor = UIColor(
+            red: 0x87/255,
+            green: 0xAB/255,
+            blue: 0x49/255,
+            alpha: 1
+        )
+        applyButton.layer.cornerRadius = 20
+        applyButton.addTarget(self, action: #selector(applyTapped), for: .touchUpInside)
+        view.addSubview(applyButton)
+
         NSLayoutConstraint.activate([
-            tableView.topAnchor.constraint(equalTo: view.topAnchor),
-            tableView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            tableView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
             tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            tableView.bottomAnchor.constraint(equalTo: applyButton.topAnchor, constant: -16),
+
+            applyButton.heightAnchor.constraint(equalToConstant: 50),
+            applyButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
+            applyButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
+            applyButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: 0),
         ])
         
         let tap = UITapGestureRecognizer(target: self, action: #selector(dismissKeyboard))
@@ -77,7 +88,10 @@ extension DebugViewController: UITableViewDataSource {
     }
     
     public func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let cell = tableView.dequeueReusableCell(withIdentifier: DebugTableViewCell.reuseID, for: indexPath) as! DebugTableViewCell
+        let cell = tableView.dequeueReusableCell(
+            withIdentifier: DebugTableViewCell.reuseID,
+            for: indexPath
+        ) as! DebugTableViewCell
 
         viewModel.configure(cell, at: indexPath)
 
