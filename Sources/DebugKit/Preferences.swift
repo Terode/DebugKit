@@ -71,7 +71,7 @@ public struct Preferences {
     }
 
     public static var interstitialInterval: TimeInterval {
-        get { UserDefaults.standard.value(forKey: #function) as? Double ?? 0 }
+        get { UserDefaults.standard.double(forKey: #function) }
         set { UserDefaults.standard.set(newValue, forKey: #function) }
     }
 
