@@ -19,6 +19,16 @@ public struct Preferences {
         }
         set { UserDefaults.standard.set(newValue, forKey: #function) }
     }
+    
+    public static var isShowLogs: Bool {
+        get {
+            if UserDefaults.standard.object(forKey: #function) == nil {
+                return false
+            }
+            return UserDefaults.standard.bool(forKey: #function)
+        }
+        set { UserDefaults.standard.set(newValue, forKey: #function) }
+    }
 
     public static var loadServersFromNodes: Bool {
         get { UserDefaults.standard.bool(forKey: #function) }

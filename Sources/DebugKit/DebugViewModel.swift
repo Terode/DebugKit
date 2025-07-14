@@ -51,7 +51,7 @@ public enum TimeField: String, CaseIterable {
 }
 
 public enum DebugItem {
-    case server, telegraph, nodes, popup
+    case server, telegraph, nodes, popup, logs
     case timing(TimeField)
     case interstitialPerDay, interstitialInterval
     case adsInspectorTestMode, testAdsMode
@@ -67,6 +67,8 @@ public enum DebugItem {
             return "Load servers from nodes"
         case .popup:                
             return "Show popup"
+        case .logs:
+            return "Logs to console"
         case .timing(let field):
             return field.rawValue
         case .interstitialPerDay:   
@@ -92,6 +94,8 @@ public enum DebugItem {
             return "nodes"
         case .popup:                
             return "popup"
+        case .logs:
+            return "logs"
         case .timing(let field):
             return field.rawValue
         case .interstitialPerDay:   
@@ -140,7 +144,7 @@ public struct DebugViewModel {
     }
 
     private let allSections: [Section] = [
-        Section(title: "General", settings: [.server, .telegraph, .nodes]),
+        Section(title: "General", settings: [.server, .telegraph, .nodes, .logs]),
         Section(title: "Popups", settings: [.popup]),
         Section(title: "Timings", settings: TimeField.allCases.map(DebugItem.timing)),
         Section(title: "Ads", settings: [.interstitialPerDay, .interstitialInterval, .adsInspectorTestMode, .testAdsMode]),
@@ -225,6 +229,13 @@ public struct DebugViewModel {
             cell.configure(title: item.title, showSwitch: true, isSwitchOn: value)
             cell.onSwitchChanged = {
                 Preferences.testShowPopup = $0
+            }
+            
+        case .logs:
+            let value = Preferences.isShowLogs
+            cell.configure(title: item.title, showSwitch: true, isSwitchOn: value)
+            cell.onSwitchChanged = {
+                Preferences.isShowLogs = $0
             }
 
         case .timing(var time):
